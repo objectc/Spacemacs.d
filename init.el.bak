@@ -31,13 +31,9 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
-     yaml
-     html
-     (python :variables
-             python-backend 'lsp
-             python-lsp-server 'mspyls
-             python-lsp-git-root "~/project/python-language-server"
-             )
+     react
+     typescript
+     nginx
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -57,30 +53,31 @@ values."
      ;; better-defaults
      emacs-lisp
      ;; git
-     ;; markdown
+     (markdown :variables
+               markdown-live-preview-engine 'vmd)
      org
-     osx
+     html
+     (javascript :
+                 node-add-modules-path t)
+     python
+     dash
      (shell :variables
-            shell-default-term-shell "/bin/zsh"
             shell-default-height 30
             shell-default-position 'bottom)
      spell-checking
      syntax-checking
      imenu-list
-     (conda :variables
-            conda-anaconda-home "/Users/guibintang/opt/anaconda3/"
-            conda-env-home-directory "/Users/guibintang/opt/anaconda3/"
-            conda-env-autoactivate-mode t)
      latex
      ;; version-control
-     (multiple-cursors :variables multiple-cursors-backend 'evil-mc)
-    )
-
+     )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages '(
+                                      yasnippet-snippets
+                                      prettier-js
+                                      )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -91,7 +88,7 @@ values."
    ;; unused packages as well as their unused dependencies.
    ;; `used-but-keep-unused' installs only the used packages but won't uninstall
    ;; them if they become unused. `all' installs *all* packages supported by
-   ;; Spacemacs and never uninstall-them. (default is `used-only')
+   ;; Spacemacs and never uninstall them. (default is `used-only')
    dotspacemacs-install-packages 'used-only))
 
 (defun dotspacemacs/init ()
@@ -115,7 +112,7 @@ values."
    ;; If non nil then spacemacs will check for updates at startup
    ;; when the current branch is not `develop'. Note that checking for
    ;; new versions works via git commands, thus it calls GitHub services
-  ;; whenever you start Emacs. (default nil)
+   ;; whenever you start Emacs. (default nil)
    dotspacemacs-check-for-update nil
    ;; If non-nil, a form that evaluates to a package directory. For example, to
    ;; use different package directories for different Emacs versions, set this
@@ -154,16 +151,6 @@ values."
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(spacemacs-dark
                          spacemacs-light)
-
-   ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
-   ;; `all-the-icons', `custom', `doom', `vim-powerline' and `vanilla'. The
-   ;; first three are spaceline themes. `doom' is the doom-emacs mode-line.
-   ;; `vanilla' is default Emacs mode-line. `custom' is a user defined themes,
-   ;; refer to the DOCUMENTATION.org for more info on how to create your own
-   ;; spaceline theme. Value can be a symbol or list with additional properties.
-   ;; (default '(spacemacs :separator wave :separator-scale 1.5))
-   dotspacemacs-mode-line-theme '(spacemacs :separator wave :separator-scale 1.5)
-
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -336,10 +323,7 @@ executes.
  This function is mostly useful for variables that need to be set
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
-  ;; (setq python-shell-interpreter "/Users/guibintang/opt/anaconda3/bin/python")
-  (setenv "WORKON_HOME" "~/opt/anaconda3/envs")
-  ;; (setenv "SHELL" "/bin/zsh")
-  ;; (setq shell-file-name "/bin/zsh")
+
   )
 
 (defun dotspacemacs/user-config ()
@@ -349,53 +333,12 @@ layers configuration.
 This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
-  ;; grammarly
-  (add-hook 'org-mode-hook (lambda() (load-file "~/.spacemacs.d/custom/emacs-grammarly/emacs-grammarly.el")))
-  ;; push custom to load-path
-  (push "./custom/" load-path)
-  (autoload 'org-paste-clipboard "~/.spacemacs.d/custom/custom-func.el" "paste-clipboard" t)
-  ;;iedit-cleanup void bug
-  (defalias 'iedit-cleanup 'iedit-lib-cleanup)
+  (setq
+   company-etags-modes '(prog-mode c-mode objc-mode c++-mode java-mode
+                                   jde-mode pascal-mode perl-mode python-mode web-mode javascript-mode html-mode)
+   markdown-open-command "open x-marked://open?file="
+   )
 
-  ;; shell
-  (evil-set-initial-state 'term-mode 'emacs) ;; turn off evil-mode for ansi-term
-  (setq term-char-mode-point-at-process-mark nil) ;; allow editing in normal mode
-
-  ;;Color and theme
-
-  (customize-set-variable 'solarized-termcolors 256)
-
-  ;; ;;yasnippet
-  (add-to-list 'yas-snippet-dirs "~/project/yasnippet-snippets/snippets")
-
-  ;;org truncate
-  (add-hook 'org-mode-hook 'spacemacs/toggle-visual-line-navigation-on)
-  ;;Iimage for org
-  (add-hook 'org-mode-hook 'turn-on-iimage-mode)
-  (setq python-shell-interpreter "/Users/guibintang/opt/anaconda3/bin/python")
-
-  ;;OSX screenshot for org
-  (defun my-org-screenshot ()
-    "Take a screenshot into a time stamped unique-named file in the
-same directory as the org-buffer and insert a link to this file."
-    (interactive)
-    (org-display-inline-images)
-    (setq filename
-          (concat
-           (make-temp-name
-            (concat (file-name-nondirectory (buffer-file-name))
-                    "_imgs/"
-                    (format-time-string "%Y%m%d_%H%M%S_")) ) ".png"))
-    (unless (file-exists-p (file-name-directory filename))
-      (make-directory (file-name-directory filename)))
-                                        ; take screenshot
-    (if (eq system-type 'darwin)
-        (call-process "screencapture" nil nil nil "-i" filename))
-    (if (eq system-type 'gnu/linux)
-        (call-process "import" nil nil nil filename))
-                                        ; insert into file if correctly taken
-    (if (file-exists-p filename)
-        (insert (concat "[[file:" filename "]]"))))
   )
 
 ;; Do not write anything past this comment. This is where Emacs will
@@ -408,31 +351,13 @@ same directory as the org-buffer and insert a link to this file."
  '(company-auto-complete nil)
  '(package-selected-packages
    (quote
-    (xterm-color shell-pop multi-term flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck eshell-z eshell-prompt-extras esh-help auto-dictionary reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl yaml-mode org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy company-web web-completion-data company-statistics company-anaconda company auto-yasnippet yasnippet ac-ispell auto-complete web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional helm-pydoc cython-mode anaconda-mode pythonic ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired f evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+    (flyspell-popup less-css-mode dash-at-point yasnippet-snippets zeal-at-point helm-dash yapfify web-mode web-beautify tagedit slim-mode scss-mode sass-mode pyvenv pytest pyenv-mode py-isort pug-mode pip-requirements org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download mmm-mode markdown-toc markdown-mode livid-mode skewer-mode simple-httpd live-py-mode json-mode json-snatcher json-reformat js2-refactor multiple-cursors js2-mode js-doc hy-mode htmlize helm-pydoc helm-css-scss helm-company helm-c-yasnippet haml-mode gnuplot gh-md fuzzy flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck emmet-mode cython-mode company-web web-completion-data company-tern dash-functional tern company-statistics company-anaconda company coffee-mode auto-yasnippet yasnippet auto-dictionary anaconda-mode pythonic ac-ispell auto-complete ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile helm-mode-manager helm-make projectile pkg-info epl helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu highlight elisp-slime-nav dumb-jump f dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))))
+ '(yas-snippet-dirs
+   (quote
+    ("/home/abblabpc-2/.emacs.d/private/snippets/" "/home/abblabpc-2/.spacemacs.d/snippets" "/home/abblabpc-2/.emacs.d/layers/+completion/auto-completion/local/snippets" yasnippet-snippets-dir)) t))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
-(defun dotspacemacs/emacs-custom-settings ()
-  "Emacs custom settings.
-This is an auto-generated function, do not modify its content directly, use
-Emacs customize menu instead.
-This function is called at the very end of Spacemacs initialization."
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(company-auto-complete nil)
- '(package-selected-packages
-   '(lsp-ui lsp-python-ms helm-lsp dap-mode posframe lsp-treemacs bui lsp-mode markdown-mode xterm-color shell-pop multi-term flyspell-correct-helm flyspell-correct flycheck-pos-tip pos-tip flycheck eshell-z eshell-prompt-extras esh-help auto-dictionary reveal-in-osx-finder pbcopy osx-trash osx-dictionary launchctl yaml-mode org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download htmlize helm-company helm-c-yasnippet gnuplot fuzzy company-web web-completion-data company-statistics company-anaconda company auto-yasnippet yasnippet ac-ispell auto-complete web-mode tagedit slim-mode scss-mode sass-mode pug-mode helm-css-scss haml-mode emmet-mode yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional helm-pydoc cython-mode anaconda-mode pythonic ws-butler winum which-key volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline powerline restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox spinner org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint indent-guide hydra lv hungry-delete hl-todo highlight-parentheses highlight-numbers parent-mode highlight-indentation helm-themes helm-swoop helm-projectile projectile pkg-info epl helm-mode-manager helm-make helm-flx helm-descbinds helm-ag google-translate golden-ratio flx-ido flx fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired f evil-tutor evil-surround evil-search-highlight-persist highlight evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-lisp-state smartparens evil-indent-plus evil-iedit-state iedit evil-exchange evil-escape evil-ediff evil-args evil-anzu anzu evil goto-chg undo-tree eval-sexp-fu elisp-slime-nav dumb-jump dash s diminish define-word column-enforce-mode clean-aindent-mode bind-map bind-key auto-highlight-symbol auto-compile packed aggressive-indent adaptive-wrap ace-window ace-link ace-jump-helm-line helm avy helm-core popup async))
- '(safe-local-variable-values '((conda-project-env-name . "wbc_tf2"))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
-)
