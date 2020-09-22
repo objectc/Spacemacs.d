@@ -59,8 +59,6 @@ values."
                       auto-completion-enable-help-tooltip 'manual)
      ;; better-defaults
      emacs-lisp
-     ;; git
-     ;; markdown
      org
      osx
      (shell :variables
@@ -75,7 +73,8 @@ values."
             conda-env-home-directory "/Users/guibintang/opt/anaconda3/"
             conda-env-autoactivate-mode t)
      latex
-     ;; version-control
+     version-control
+     git
      (multiple-cursors :variables multiple-cursors-backend 'evil-mc)
     )
 
